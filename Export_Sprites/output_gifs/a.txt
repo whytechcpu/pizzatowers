@@ -1,0 +1,29 @@
+import os
+
+def generate_html_code():
+    subdirectory = "/sprites/sprgifs/"
+    
+    html_code = '<div class="gallery">\n'
+
+    # Get a list of all files in the current directory
+    files = os.listdir(".")
+
+    # Filter out only the GIF files
+    gif_files = [file for file in files if file.lower().endswith(".gif")]
+
+    # Generate HTML code for each GIF file
+    for gif_file in gif_files:
+        img_path = os.path.join(subdirectory, gif_file)
+        img_tag = f'    <img src="{img_path}" alt="{os.path.splitext(gif_file)[0]}" loading="lazy">\n'
+        html_code += img_tag
+
+    html_code += '</div>'
+
+    return html_code
+
+# Write the HTML code to a file (change the file name as needed)
+with open("gallery.html", "w") as file:
+    html_code = generate_html_code()
+    file.write(html_code)
+
+print("HTML code generated and saved to gallery.html")

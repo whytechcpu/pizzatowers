@@ -1,0 +1,74 @@
+from PIL import Image, UnidentifiedImageError
+import os
+from natsort import natsorted
+from tqdm import tqdm
+
+def is_valid_image(filename):
+    valid_extensions = {".png", ".jpg", ".jpeg", ".gif", ".bmp"}
+    return any(filename.lower().endswith(ext) for ext in valid_extensions)
+
+def convert_to_gif(input_folder, output_folder, frame_duration=41.67):
+    # Get all file names in the input folder
+    file_names = os.listdir(input_folder)
+
+    # Filter out files that are not valid image files
+    valid_file_names = [file_name for file_name in file_names if is_valid_image(file_name)]
+    invalid_file_names = [file_name for file_name in file_names if file_name not in valid_file_names]
+
+    # Group valid file names based on their prefixes
+    grouped_files = {}
+    for file_name in valid_file_names:
+        parts = os.path.splitext(file_name)[0].split('_')
+        prefix = '_'.join(parts[:-1])  # Use all parts except the last one as prefix
+        if prefix not in grouped_files:
+            grouped_files[prefix] = []
+        grouped_files[prefix].append(file_name)
+
+    # Create output folder if it doesn't exist
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Process each group of valid files with a progress bar
+    for prefix, files in grouped_files.items():
+        # Sort the files using natural sorting
+        files = natsorted(files)
+
+        # Create a list to store image objects
+        images = []
+
+        # Read each image and append it to the list
+        for file_name in tqdm(files, desc=f"Processing {prefix}"):
+            file_path = os.path.join(input_folder, file_name)
+            try:
+                image = Image.open(file_path)
+                images.append(image)
+            except (IOError, UnidentifiedImageError):
+                print(f"Skipping {file_name} - Not a valid image file")
+
+        # Save the images as a GIF with adjusted duration
+        if images:
+            final_number = parts[-1]  # Use the last part as the final number
+            output_file = os.path.join(output_folder, f"{prefix}.gif")
+
+            # Set a default frame duration for all frames
+            default_duration = int(frame_duration)
+            durations = [default_duration] * len(images)
+
+            images[0].save(output_file, save_all=True, append_images=images[1:], duration=durations, loop=0, disposal=2)
+            print(f"GIF created: {output_file}")
+        else:
+            print(f"No valid images found for {prefix}.")
+
+    # Print information about invalid files
+    if invalid_file_names:
+        print("\nInvalid Files:")
+        for invalid_file in invalid_file_names:
+            print(f"Skipping {invalid_file} - Not a valid image file")
+
+# Set input folder to the current working directory
+input_folder = os.getcwd()
+
+# Set output folder to a generated folder
+output_folder = "output_gifs"
+# Set the desired frame duration in milliseconds (default is 41.67 for 24 fps)
+frame_duration = 50
+convert_to_gif(input_folder, output_folder, frame_duration)
